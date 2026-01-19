@@ -1,0 +1,7 @@
+i.MX8MP ASTRIAL BOARD
+M:	Koan Software <info@koansoftware.com>
+S:	Maintained
+F:	board/system-electronics/imx8mp_astrial/
+F:	include/configs/imx8mp_astrial.h
+F:	configs/imx8mp_astrial_defconfig
+

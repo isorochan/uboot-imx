@@ -1,0 +1,15 @@
+if TARGET_IMX8MP_ASTRIAL
+
+config SYS_BOARD
+	default "imx8mp_astrial"
+
+config SYS_VENDOR
+	default "system-electronics"
+
+config SYS_CONFIG_NAME
+	default "imx8mp_astrial"
+
+config IMX_CONFIG
+	default "board/system-electronics/imx8mp_astrial/imximage-8mp-lpddr4.cfg"
+
+endif
