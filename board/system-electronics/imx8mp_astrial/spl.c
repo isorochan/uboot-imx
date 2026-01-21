@@ -29,6 +29,10 @@
 #include <asm/arch/ddr.h>
 #include <asm/sections.h>
 
+extern struct dram_timing_info dram_timing_8gb;
+extern struct dram_timing_info dram_timing_4gb;
+extern struct dram_timing_info dram_timing_2gb;
+
 DECLARE_GLOBAL_DATA_PTR;
 
 int spl_board_boot_device(enum boot_device boot_dev_spl)
@@ -57,9 +61,39 @@ int spl_board_boot_device(enum boot_device boot_dev_spl)
 #endif
 }
 
+bool check_ram_available(long size)
+{
+	long sz = get_ram_size((long *)PHYS_SDRAM, size);
+
+	if (sz == size)
+		return true;
+
+	return false;
+}
+
 void spl_dram_init(void)
 {
-	ddr_init(&dram_timing);
+#if defined(CONFIG_IMX8MP_ASTRIAL_RAM_8G)
+	if (!ddr_init(&dram_timing_8gb) && check_ram_available(SZ_4G + SZ_4G)) {
+		printf("DDRINFO: ddr_init for 8GB done\n");
+	} else {
+		printf("DDRINFO: ddr_init for 8GB failed\n");
+	}
+#elif defined(CONFIG_IMX8MP_ASTRIAL_RAM_4G)
+	if (!ddr_init(&dram_timing_4gb) && check_ram_available(SZ_4G)) {
+		printf("DDRINFO: ddr_init for 4GB done\n");
+	} else {
+		printf("DDRINFO: ddr_init for 4GB failed\n");
+	}
+#elif defined(CONFIG_IMX8MP_ASTRIAL_RAM_2G)
+	if (!ddr_init(&dram_timing_2gb) && check_ram_available(SZ_2G)) {
+		printf("DDRINFO: ddr_init for 2GB done\n");
+	} else {
+		printf("DDRINFO: ddr_init for 2GB failed\n");
+	}
+#else
+#error "Missing any of CONFIG_IMX8MO_ASTRIAL_RAM_XG"
+#endif
 }
 
 void spl_board_init(void)

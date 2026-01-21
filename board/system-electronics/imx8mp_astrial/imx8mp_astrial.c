@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright 2019 NXP
+ * Copyright 2024 Koan Software
  */
 
 #include <efi_loader.h>
@@ -22,19 +23,21 @@
 #include <spl.h>
 #include <asm/mach-imx/dma.h>
 #include <power/pmic.h>
-#include "../common/tcpc.h"
+#include "../../freescale/common/tcpc.h"
 #include <usb.h>
 #include <dwc3-uboot.h>
 #include <mmc.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#define __SYSTEM_ELECTRONICS_BOARD_VERSION__ "01.00"
+
 #define UART_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_FSEL1)
 #define WDOG_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_ODE | PAD_CTL_PUE | PAD_CTL_PE)
 
 static iomux_v3_cfg_t const uart_pads[] = {
-	MX8MP_PAD_UART2_RXD__UART2_DCE_RX | MUX_PAD_CTRL(UART_PAD_CTRL),
-	MX8MP_PAD_UART2_TXD__UART2_DCE_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
+	MX8MP_PAD_SAI2_RXC__UART1_DCE_RX | MUX_PAD_CTRL(UART_PAD_CTRL),
+	MX8MP_PAD_SAI2_RXFS__UART1_DCE_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
 };
 
 static iomux_v3_cfg_t const wdog_pads[] = {
@@ -76,7 +79,7 @@ int board_early_init_f(void)
 
 	imx_iomux_v3_setup_multiple_pads(uart_pads, ARRAY_SIZE(uart_pads));
 
-	init_uart_clk(1);
+	init_uart_clk(0);
 
 	return 0;
 }
@@ -339,16 +342,29 @@ static int setup_typec(void)
 #define HSIO_GPR_REG_0_USB_CLOCK_MODULE_EN          (0x1U << HSIO_GPR_REG_0_USB_CLOCK_MODULE_EN_SHIFT)
 
 
-static struct dwc3_device dwc3_device_data = {
+static struct dwc3_device dwc3_device_data[] = {
+	{
 #ifdef CONFIG_SPL_BUILD
-	.maximum_speed = USB_SPEED_HIGH,
+		.maximum_speed = USB_SPEED_HIGH,
 #else
-	.maximum_speed = USB_SPEED_SUPER,
+		.maximum_speed = USB_SPEED_SUPER,
 #endif
-	.base = USB1_BASE_ADDR,
-	.dr_mode = USB_DR_MODE_PERIPHERAL,
-	.index = 0,
-	.power_down_scale = 2,
+		.base = USB1_BASE_ADDR,
+		.dr_mode = USB_DR_MODE_PERIPHERAL,
+		.index = 0,
+		.power_down_scale = 2,
+	},
+	{
+#ifdef CONFIG_SPL_BUILD
+		.maximum_speed = USB_SPEED_HIGH,
+#else
+		.maximum_speed = USB_SPEED_SUPER,
+#endif
+		.base = USB2_BASE_ADDR,
+		.dr_mode = USB_DR_MODE_PERIPHERAL,
+		.index = 1,
+		.power_down_scale = 2,
+	}
 };
 
 int dm_usb_gadget_handle_interrupts(struct udevice *dev)
@@ -400,17 +416,16 @@ static void dwc3_nxp_usb_phy_init(struct dwc3_device *dwc3)
 int board_usb_init(int index, enum usb_init_type init)
 {
 	int ret = 0;
-
-	if (index == 0 && init == USB_INIT_DEVICE) {
+	if ((index == 0 || index == 1) && init == USB_INIT_DEVICE) {
 		imx8m_usb_power(index, true);
 #ifdef CONFIG_USB_TCPC
 		ret = tcpc_setup_ufp_mode(&port1);
 		if (ret)
 			return ret;
 #endif
-		dwc3_nxp_usb_phy_init(&dwc3_device_data);
-		return dwc3_uboot_init(&dwc3_device_data);
-	} else if (index == 0 && init == USB_INIT_HOST) {
+		dwc3_nxp_usb_phy_init(&dwc3_device_data[index]);
+		return dwc3_uboot_init(&dwc3_device_data[index]);
+	} else if ((index == 0 || index == 1) && init == USB_INIT_HOST) {
 #ifdef CONFIG_USB_TCPC
 		ret = tcpc_setup_dfp_mode(&port1);
 #endif
@@ -477,18 +492,72 @@ int board_init(void)
 	return 0;
 }
 
+#define ETH_RST    IMX_GPIO_NR(1, 12)
+static iomux_v3_cfg_t eth_rst_mux[] = {
+	MX8MP_PAD_GPIO1_IO12__GPIO1_IO12 | MUX_PAD_CTRL(NO_PAD_CTRL),
+};
+
+static void eth_rst(int delay_ms)
+{
+	static int init = 0;
+	
+	if(init == 0)
+	{
+		imx_iomux_v3_setup_multiple_pads(eth_rst_mux, ARRAY_SIZE(eth_rst_mux));
+		gpio_request(ETH_RST, "eth_rst");
+		gpio_direction_output(ETH_RST, 1);
+		init = 1;
+	}
+	else 
+	{
+		gpio_set_value(ETH_RST, 1);
+	}
+	mdelay(delay_ms);
+	gpio_set_value(ETH_RST, 0);
+	
+	printf("eth reset (%d[ms])\n", delay_ms);
+}
+
 int board_late_init(void)
 {
 #ifdef CONFIG_ENV_IS_IN_MMC
 	board_late_mmc_env_init();
 #endif
 #ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
-	env_set("board_name", "EVK");
+	env_set("board_name", "ASTRIAL");
 	env_set("board_rev", "iMX8MP");
 #endif
 
+	eth_rst(50);
+
+   return 0;
+}
+
+#ifdef CONFIG_ENV_IS_IN_MMC
+int board_mmc_get_env_dev(int devno)
+{
+#ifdef CONFIG_SYS_MMC_ENV_DEV
+	return CONFIG_SYS_MMC_ENV_DEV;
+#else
+	return devno;
+#endif
+}
+#endif
+
+#ifdef CONFIG_DISPLAY_BOARDINFO
+int checkboard(void)
+{
+	puts("Board: System Electronics iMX8MP ASTRIAL (version " __SYSTEM_ELECTRONICS_BOARD_VERSION__ ")\n"); 
 	return 0;
 }
+#endif
+
+#ifdef CONFIG_SPL_DISPLAY_PRINT
+void spl_display_print(void)
+{
+	checkboard();
+}
+#endif
 
 #ifdef CONFIG_ANDROID_SUPPORT
 bool is_power_key_pressed(void) {
@@ -518,3 +587,14 @@ int is_recovery_key_pressing(void)
 }
 #endif /* CONFIG_ANDROID_RECOVERY */
 #endif /* CONFIG_FSL_FASTBOOT */
+
+int board_phys_sdram_size(phys_size_t *size)
+{
+	if (!size)
+		return -EINVAL;
+
+	/* PHYS_SDRAM*_SIZE is to max of 8GB, but there are also the 4GB and 2GB variants */
+	*size = get_ram_size((void *)PHYS_SDRAM, PHYS_SDRAM_SIZE + PHYS_SDRAM_2_SIZE);
+
+	return 0;
+}

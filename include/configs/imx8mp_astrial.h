@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
 /*
  * Copyright 2019 NXP
+ * Copyright 2024 KOAN <https://koansoftware.com>
  */
 
 #ifndef __IMX8MP_EVK_H
@@ -31,7 +32,7 @@
 #define BOOTENV
 #endif
 
-#define JH_ROOT_DTB    "imx8mp-evk-root.dtb"
+#define JH_ROOT_DTB    "imx8mp-astrial-root.dtb"
 /* jh_root_mem: set the memory space used by Jailhouse root cell */
 #define JAILHOUSE_ENV \
 	"jh_clk= \0 " \
@@ -75,8 +76,8 @@
 	"fdt_addr=0x43000000\0"			\
 	"fdt_high=0xffffffffffffffff\0" \
 	"mtdparts=" MFG_NAND_PARTITION "\0" \
-	"console=ttymxc1,115200 earlycon=ec_imx6q,0x30890000,115200\0" \
-	"bootargs=console=ttymxc1,115200 earlycon=ec_imx6q,0x30890000,115200 ubi.mtd=nandrootfs "  \
+	"console=ttymxc0,115200 earlycon=ec_imx6q,0x30860000,115200\0" \
+	"bootargs=console=ttymxc0,115200 earlycon=ec_imx6q,0x30860000,115200 ubi.mtd=nandrootfs 
 		"root=ubi0:nandrootfs rootfstype=ubifs "		     \
 		MFG_NAND_PARTITION \
 		"\0" \
@@ -96,7 +97,7 @@
 	"bsp_script=boot.scr\0" \
 	"image=Image\0" \
 	"splashimage=0x50000000\0" \
-	"console=ttymxc1,115200\0" \
+	"console=ttymxc0,115200\0" \
 	"fdt_addr_r=0x43000000\0"			\
 	"fdt_addr=0x43000000\0"			\
 	"boot_fdt=try\0" \
@@ -106,7 +107,7 @@
 	"bootm_size=0x10000000\0" \
 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
 	"mmcpart=1\0" \
-	"mmcroot=/dev/mmcblk1p2 rootwait rw\0" \
+	"mmcroot=/dev/mmcblk2p2 rootwait rw\0" \
 	"mmcautodetect=yes\0" \
 	"mmcargs=setenv bootargs ${jh_clk} ${mcore_clk} console=${console} root=${mmcroot}\0 " \
 	"loadbootscript=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bsp_script};\0" \
@@ -145,7 +146,14 @@
 				"echo WARN: Cannot load the DT; " \
 			"fi; " \
 		"fi;\0" \
+	"swapper=echo Test storage device ...; " \
+		"if test -e mmc 1:1 ${fdtfile}; then " \
+			"echo Swap to microSD; " \
+			"setenv mmcdev 1; " \
+			"setenv mmcroot '/dev/mmcblk1p2 rootwait rw'; " \
+		"fi;\0" \
 	"bsp_bootcmd=echo Running BSP bootcmd ...; " \
+		"run swapper; " \
 		"mmc dev ${mmcdev}; if mmc rescan; then " \
 		   "if run loadbootscript; then " \
 			   "run bootscript; " \
@@ -167,15 +175,18 @@
 /* Totally 6GB DDR */
 #define CFG_SYS_SDRAM_BASE		0x40000000
 #define PHYS_SDRAM			0x40000000
-#define PHYS_SDRAM_SIZE			0xC0000000	/* 3 GB */
-#define PHYS_SDRAM_2			0x100000000
+//#define PHYS_SDRAM_SIZE			0xC0000000	/* 3 GB */
+//#define PHYS_SDRAM_2			0x100000000
+#define PHYS_SDRAM_SIZE			0x100000000	/* 4 GB */
+#define PHYS_SDRAM_2			0x140000000
 #ifdef CONFIG_TARGET_IMX8MP_DDR4_EVK
 #define PHYS_SDRAM_2_SIZE		0x40000000	/* 1 GB */
 #else
-#define PHYS_SDRAM_2_SIZE		0xC0000000	/* 3 GB */
+//#define PHYS_SDRAM_2_SIZE		0xC0000000	/* 3 GB */
+#define PHYS_SDRAM_2_SIZE		0x100000000	/* 4 GB */
 #endif
 
-#define CFG_MXC_UART_BASE		UART2_BASE_ADDR
+#define CFG_MXC_UART_BASE		UART1_BASE_ADDR
 
 #define CFG_SYS_NAND_BASE           0x20000000
 

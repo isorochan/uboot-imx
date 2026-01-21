@@ -12,4 +12,26 @@ config SYS_CONFIG_NAME
 config IMX_CONFIG
 	default "board/system-electronics/imx8mp_astrial/imximage-8mp-lpddr4.cfg"
 
+choice
+	prompt "iMX8MP Astrial Memory variant"
+	default IMX8MP_ASTRIAL_RAM_8G
+	help
+	  Select memory variant for Astrial
+
+config IMX8MP_ASTRIAL_RAM_8G
+	bool "iMX8MP Astrial with 8GB LPDDR4"
+	help
+	  Select module with 8GB LPDDR4
+
+config IMX8MP_ASTRIAL_RAM_4G
+	bool "iMX8MP Astrial with 4GB LPDDR4"
+	help
+	  Select module with 4GB LPDDR4
+
+config IMX8MP_ASTRIAL_RAM_2G
+	bool "iMX8MP Astrial with 2GB LPDDR4"
+	help
+	  Select module with 2GB LPDDR4
+endchoice
+
 endif
