@@ -10,7 +10,7 @@
 #include <linux/sizes.h>
 #include <linux/stringify.h>
 #include <asm/arch/imx-regs.h>
-#include "imx_env.h"
+#include <env/nxp/imx_env.h>
 
 #define CFG_SYS_UBOOT_BASE	(QSPI0_AMBA_BASE + CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR * 512)
 
@@ -68,24 +68,6 @@
 #endif
 
 /* Initial environment variables */
-#if defined(CONFIG_NAND_BOOT)
-#define CFG_EXTRA_ENV_SETTINGS \
-	CFG_MFG_ENV_SETTINGS \
-	"splashimage=0x50000000\0" \
-	"fdt_addr_r=0x43000000\0"			\
-	"fdt_addr=0x43000000\0"			\
-	"fdt_high=0xffffffffffffffff\0" \
-	"mtdparts=" MFG_NAND_PARTITION "\0" \
-	"console=ttymxc0,115200 earlycon=ec_imx6q,0x30860000,115200\0" \
-	"bootargs=console=ttymxc0,115200 earlycon=ec_imx6q,0x30860000,115200 ubi.mtd=nandrootfs 
-		"root=ubi0:nandrootfs rootfstype=ubifs "		     \
-		MFG_NAND_PARTITION \
-		"\0" \
-	"bootcmd=nand read ${loadaddr} 0x5000000 0x4000000;"\
-		"nand read ${fdt_addr_r} 0x9000000 0x100000;"\
-		"booti ${loadaddr} - ${fdt_addr_r}"
-
-#else
 #define CFG_EXTRA_ENV_SETTINGS		\
 	CFG_MFG_ENV_SETTINGS \
 	JAILHOUSE_ENV \
@@ -164,7 +146,6 @@
 			   "fi; " \
 		   "fi; " \
 	   "fi;"
-#endif
 
 /* Link Definitions */
 
