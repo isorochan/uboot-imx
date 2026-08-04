@@ -20,13 +20,17 @@
 #include <asm/arch/sys_proto.h>
 #include <asm/mach-imx/gpio.h>
 #include <asm/mach-imx/mxc_i2c.h>
-#include <spl.h>
+#include <i2c.h>
 #include <asm/mach-imx/dma.h>
 #include <power/pmic.h>
 #include "../../nxp/common/tcpc.h"
 #include <usb.h>
 #include <dwc3-uboot.h>
+#include <dm/uclass-internal.h>
+#include <dm/pinctrl.h>
+#include <fuse.h>
 #include <mmc.h>
+#include <spl.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -519,7 +523,7 @@ static void eth_rst(int delay_ms)
 
 int board_late_init(void)
 {
-#ifdef CONFIG_ENV_IS_IN_MMC
+#if CONFIG_IS_ENABLED(ENV_IS_IN_MMC)
 	board_late_mmc_env_init();
 #endif
 #ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
@@ -532,7 +536,7 @@ int board_late_init(void)
    return 0;
 }
 
-#ifdef CONFIG_ENV_IS_IN_MMC
+#if CONFIG_IS_ENABLED(ENV_IS_IN_MMC)
 int board_mmc_get_env_dev(int devno)
 {
 #ifdef CONFIG_SYS_MMC_ENV_DEV
