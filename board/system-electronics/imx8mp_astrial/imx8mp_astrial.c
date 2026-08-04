@@ -53,6 +53,11 @@ static void setup_gpmi_nand(void)
 #endif
 
 #if CONFIG_IS_ENABLED(EFI_HAVE_CAPSULE_SUPPORT)
+
+#define IMX_BOOT_IMAGE_GUID \
+	EFI_GUID(0x8c4e1d5d, 0x8fcf, 0x6649, \
+         0x9e, 0xec, 0x97, 0x83, 0x8b, 0x84, 0xd8, 0xbb)
+
 struct efi_fw_image fw_images[] = {
 	{
 		.image_type_id = IMX_BOOT_IMAGE_GUID,
@@ -366,12 +371,6 @@ static struct dwc3_device dwc3_device_data[] = {
 		.power_down_scale = 2,
 	}
 };
-
-int dm_usb_gadget_handle_interrupts(struct udevice *dev)
-{
-	dwc3_uboot_handle_interrupt(dev);
-	return 0;
-}
 
 static void dwc3_nxp_usb_phy_init(struct dwc3_device *dwc3)
 {
